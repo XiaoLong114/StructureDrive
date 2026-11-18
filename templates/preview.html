@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% import 'macros.html' as ui with context %}
+
+{% block title %}{{ file.name }} · 3D 预览{% endblock %}
+{% block body_class %}viewer-page{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/viewer.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="viewer-shell" id="viewerShell">
+  <header class="viewer-bar">
+    <a class="icon-btn" href="{% if chain %}{{ url_for('drive', folder=chain[-1]['id']) }}{% else %}{{ url_for('drive') }}{% endif %}" aria-label="返回文件库" title="返回文件库">
+      {{ ui.icon('arrow-left') }}
+    </a>
+    <div class="viewer-heading">
+      <h1 class="viewer-file-name" title="{{ file.name }}">{{ file.name }}</h1>
+      <div class="viewer-file-meta">
+        <span class="type-chip art-{{ family }}">{{ file.ext|upper }}</span>
+        <span>{{ file.size|size }}</span>
+        <span class="sep"></span>
+        <span>{{ file.created_at|date }}</span>
+        {% if chain %}
+          <span class="sep"></span>
+          <a href="{{ url_for('drive', folder=chain[-1]['id']) }}">{{ chain[-1]['name'] }}</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="viewer-actions">
+      <div class="engine-status" id="engineStatus"><span class="status-dot"></span><span id="engineStatusText">加载引擎</span></div>
+      <button class="icon-btn" type="button" data-action="toggle-theme" aria-label="切换主题" title="切换主题">
+        {{ ui.icon('sun', 'theme-icon-light') }}
+        {{ ui.icon('moon', 'theme-icon-dark') }}
+      </button>
+      <button class="icon-btn viewer-panel-btn" type="button" data-action="toggle-panel" aria-label="显示或隐藏视图设置" aria-expanded="true">
+        {{ ui.icon('tune') }}
+      </button>
+    </div>
+  </header>
+
+  <main class="viewer-main" id="viewerMain">
+    <div class="stage-wrap" id="stageWrap" data-file-url="{{ url_for('raw_file', file_id=file.id) }}" data-file-name="{{ file.name }}" data-file-size="{{ file.size }}" data-default-lod="{{ default_lod }}"{% if structure_size %} data-origin-size="{{ structure_size|join(',') }}"{% endif %}>
+      <canvas id="viewport" aria-label="{{ file.name }} 的 3D 视图">你的浏览器需要支持 WebGL 才能查看 3D 结构。</canvas>
+
+      <div class="stage-chip" id="stageChip">
+        {{ ui.icon('cube') }}<span id="stageChipText">准备中…</span>
+      </div>
+
+      <div class="stage-tools">
+        <button class="icon-btn stage-tool" type="button" data-action="reset" aria-label="重置视角" title="重置视角 (R)">{{ ui.icon('reset') }}</button>
+        <button class="icon-btn stage-tool" type="button" data-action="toggle-grid" aria-label="显示或隐藏网格" title="网格 (G)">{{ ui.icon('grid') }}</button>
+        <button class="icon-btn stage-tool" type="button" data-action="fullscreen" aria-label="全屏" title="全屏 (F)">{{ ui.icon('fullscreen') }}</button>
+      </div>
+
+      <div class="stage-foot">
+        <div class="scale-bar" id="scaleBar" hidden>
+          <span class="scale-line" id="scaleLine"></span>
+          <span class="scale-text" id="scaleText">16 方块</span>
+        </div>
+        <div class="view-hints">
+          <span>左键旋转</span><span>右键平移</span><span>滚轮缩放</span><span>Ctrl + 滚轮切层</span>
+        </div>
+      </div>
+
+      <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-card">
+          <div class="loader-cube" aria-hidden="true">
+            <svg viewBox="0 0 64 64">
+              <path d="M32 6 58 20 32 34 6 20 32 6Z" fill="var(--md-primary)" opacity=".95"/>
+              <path d="M6 20 32 34v24L6 44V20Z" fill="var(--md-primary)" opacity=".62"/>
+              <path d="M58 20 32 34v24l26-14V20Z" fill="var(--md-primary)" opacity=".38"/>
+            </svg>
+          </div>
+          <h2 class="loading-title" id="loadingTitle">正在加载 3D 引擎</h2>
+          <p class="loading-text" id="loadingText">初次加载需载入压缩后的解析核心与材质（约 1.5 MB）…</p>
+          <div class="progress-track"><div class="progress-bar" id="loadBar"></div></div>
+          <div class="load-steps">
+            <span id="stepEngine">解析核心</span>
+            <span id="stepFile">读取文件</span>
+            <span id="stepMesh">生成网格</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="error-overlay" id="errorOverlay" hidden>
+        <div class="error-card">
+          <div class="error-icon">{{ ui.icon('warning') }}</div>
+          <h2 class="error-title">无法解析这个结构</h2>
+          <p class="error-text" id="errorText">文件可能已损坏，或使用了不受支持的格式。</p>
+          <div class="error-actions">
+            <button class="btn btn-tonal" type="button" data-action="retry">{{ ui.icon('reset') }}重试</button>
+            <a class="btn btn-filled" href="{{ url_for('drive') }}">{{ ui.icon('arrow-left') }}返回文件库</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="control-sheet" id="controlSheet" aria-label="视图设置">
+      <div class="sheet-head">
+        <div>
+          <h2 class="sheet-title">视图设置</h2>
+          <p class="sheet-sub">实时调整结构渲染</p>
+        </div>
+        <button class="icon-btn sheet-close" type="button" data-action="toggle-panel" aria-label="关闭视图设置">{{ ui.icon('close') }}</button>
+      </div>
+
+      <section class="sheet-section">
+        <h3 class="section-title">结构信息</h3>
+        <div class="info-grid">
+          <div class="info-item"><span>尺寸</span><strong id="infoSize">—</strong></div>
+          <div class="info-item"><span>原点</span><strong id="infoOrigin">—</strong></div>
+          <div class="info-item"><span>非空方块</span><strong id="infoBlocks">—</strong></div>
+          <div class="info-item"><span>调色板</span><strong id="infoPalette">—</strong></div>
+          <div class="info-item"><span>三角面</span><strong id="infoMesh">—</strong></div>
+          <div class="info-item"><span>区域</span><strong id="infoRegions">—</strong></div>
+        </div>
+        <div class="missing-note" id="missingNote" hidden>
+          {{ ui.icon('warning') }}<span id="missingText"></span>
+        </div>
+      </section>
+
+      <section class="sheet-section">
+        <div class="section-head">
+          <h3 class="section-title">细节层级</h3>
+          <span class="section-value" id="lodValue">×{{ default_lod }}</span>
+        </div>
+        <div class="segmented wide" role="group" aria-label="细节层级">
+          <button type="button" data-lod="1" class="{{ 'active' if default_lod == 1 }}">×1</button>
+          <button type="button" data-lod="2" class="{{ 'active' if default_lod == 2 }}">×2</button>
+          <button type="button" data-lod="4" class="{{ 'active' if default_lod == 4 }}">×4</button>
+          <button type="button" data-lod="8" class="{{ 'active' if default_lod == 8 }}">×8</button>
+        </div>
+        <p class="section-help" id="lodHint">结构过大时提高 LOD 可降低细节、提升流畅度。{% if default_lod > 1 %}已按体积自动选择 ×{{ default_lod }}，可在上方切换。{% endif %}</p>
+      </section>
+
+      <section class="sheet-section">
+        <div class="section-head">
+          <h3 class="section-title">切层</h3>
+          <span class="section-value" id="sliceValue">完整</span>
+        </div>
+        <input class="md-slider" id="sliceSlider" type="range" min="0" max="100" value="100" aria-label="切层高度" disabled>
+        <div class="slider-ends"><span>空白</span><span>完整</span></div>
+        <p class="section-help">向下拖动切掉上方方块，Ctrl + 滚轮可快速调整。</p>
+      </section>
+
+      <section class="sheet-section">
+        <div class="section-head">
+          <h3 class="section-title">画质</h3>
+          <span class="section-value" id="qualityValue">高</span>
+        </div>
+        <div class="segmented wide" role="group" aria-label="渲染画质">
+          <button type="button" data-quality="high" class="active">高</button>
+          <button type="button" data-quality="mid">中</button>
+          <button type="button" data-quality="low">低</button>
+        </div>
+      </section>
+
+      <section class="sheet-section">
+        <div class="switch-row">
+          <div><span class="switch-label">地面网格</span><span class="switch-sub">显示方块对齐参考线</span></div>
+          <label class="switch"><input type="checkbox" id="gridToggle" checked><span class="track"></span></label>
+        </div>
+        <div class="switch-row">
+          <div><span class="switch-label">自动旋转</span><span class="switch-sub">缓慢环绕结构</span></div>
+          <label class="switch"><input type="checkbox" id="rotateToggle"><span class="track"></span></label>
+        </div>
+      </section>
+
+      <section class="sheet-section sheet-actions">
+        <button class="btn btn-tonal" type="button" data-action="reset">{{ ui.icon('reset') }}重置视角</button>
+        <button class="btn btn-outlined" type="button" data-action="fullscreen">{{ ui.icon('fullscreen') }}全屏查看</button>
+      </section>
+
+      <section class="sheet-section file-details">
+        <h3 class="section-title">文件</h3>
+        <div class="detail-row"><span>格式</span><strong>{{ label }}</strong></div>
+        <div class="detail-row"><span>大小</span><strong>{{ file.size|size }}</strong></div>
+        {% if structure_size %}
+          <div class="detail-row"><span>结构尺寸</span><strong>{{ structure_size[0] }} × {{ structure_size[1] }} × {{ structure_size[2] }}</strong></div>
+        {% endif %}
+        <div class="detail-row"><span>上传时间</span><strong>{{ file.created_at|date }}</strong></div>
+        <div class="detail-row"><span>位置</span><strong>{% if chain %}{{ chain[-1]['name'] }}{% else %}全部文件{% endif %}</strong></div>
+      </section>
+
+      <p class="sheet-foot">材质版权归 Mojang 所有，仅作渲染展示</p>
+    </aside>
+  </main>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "{{ url_for('static', filename='vendor/three/three.module.min.js') }}",
+    "three/addons/": "{{ url_for('static', filename='vendor/three/') }}"
+  }
+}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', filename='js/viewer.js') }}"></script>
+{% endblock %}

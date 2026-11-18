@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+
+# 运行时数据（数据库、会话密钥、用户上传文件，不随仓库分发）
+data/mccloud.db
+data/mccloud.db-shm
+data/mccloud.db-wal
+data/secret_key
+data/files/
+
+# 保留内置示例目录（data/samples）
+!data/samples/

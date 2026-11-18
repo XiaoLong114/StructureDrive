@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% import 'macros.html' as ui with context %}
+
+{% block title %}管理员登录 · 方块云盘{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+
+{% block content %}
+<button class="icon-btn auth-theme" type="button" data-action="toggle-theme" aria-label="切换主题">
+  {{ ui.icon('sun', 'theme-icon-light') }}
+  {{ ui.icon('moon', 'theme-icon-dark') }}
+</button>
+
+<div class="auth-card">
+  <a class="auth-brand" href="{{ url_for('drive') }}">
+    {{ ui.logo() }}
+    <span>
+      <span class="auth-brand-title">方块云盘</span><br>
+      <span class="auth-brand-sub">Structure Drive</span>
+    </span>
+  </a>
+
+  <h1 class="auth-title">管理员登录</h1>
+  <p class="auth-sub">登录后可以上传结构、创建文件夹与管理文件。访客无需登录即可浏览和预览。</p>
+
+  {% if error %}
+    <div class="dialog-error show" role="alert">{{ error }}</div>
+  {% endif %}
+
+  <form class="auth-form" method="post" action="{{ url_for('login_post') }}">
+    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <input type="hidden" name="next" value="{{ next }}">
+
+    <label class="field-label" for="username">管理员账号</label>
+    <input class="text-field" id="username" name="username" type="text" value="{{ username or '' }}" autocomplete="username" required autofocus>
+
+    <label class="field-label" for="password">密码</label>
+    <input class="text-field" id="password" name="password" type="password" autocomplete="current-password" required>
+
+    <button class="btn btn-filled auth-submit" type="submit">{{ ui.icon('lock-open') }}登录</button>
+  </form>
+
+  <div class="auth-alt">
+    {{ ui.icon('eye') }}<a href="{{ url_for('drive') }}">以访客身份继续浏览</a>
+  </div>
+
+  {% if default_password_hint %}
+    <div class="auth-hint">
+      首次使用：账号 <strong>admin</strong>，密码 <strong>admin123</strong>。<br>
+      部署时请通过环境变量 <code>MCCLOUD_ADMIN_PASSWORD</code> 修改密码。
+    </div>
+  {% endif %}
+
+  <a class="auth-back" href="{{ url_for('drive') }}">{{ ui.icon('arrow-left') }}返回文件库</a>
+</div>
+{% endblock %}

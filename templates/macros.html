@@ -1,0 +1,63 @@
+{% macro icon(name, cls='') -%}
+<svg class="icon {{ cls }}" aria-hidden="true" focusable="false"><use href="#i-{{ name }}"></use></svg>
+{%- endmacro %}
+
+{% macro logo(cls='') -%}
+<svg class="brand-mark {{ cls }}" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
+  <path d="M20 2.8 36.8 12 20 21.2 3.2 12 20 2.8Z" fill="var(--md-primary)"/>
+  <path d="M3.2 12 20 21.2v16L3.2 28.2V12Z" fill="var(--md-primary)" opacity=".72"/>
+  <path d="M36.8 12 20 21.2v16l16.8-9V12Z" fill="var(--md-primary)" opacity=".48"/>
+  <path d="M20 21.2v16M3.2 12l16.8 9.2L36.8 12" fill="none" stroke="var(--md-surface)" stroke-width="1.1" opacity=".55"/>
+</svg>
+{%- endmacro %}
+
+{% macro file_art(ext) -%}
+<div class="file-art art-{{ ext_family(ext) }}">
+  <svg viewBox="0 0 128 128" aria-hidden="true" focusable="false">
+    <g class="cube">
+      <path class="face face-top" d="M64 13.5 113 40 64 66.5 15 40 64 13.5Z"/>
+      <path class="face face-left" d="M15 40 64 66.5v47L15 87V40Z"/>
+      <path class="face face-right" d="M113 40 64 66.5v47l49-26.5V40Z"/>
+    </g>
+    <g class="cube-lines">
+      <path d="M39.5 26.8 88.5 53.3M64 13.5v26.5M88.5 26.8 39.5 53.3"/>
+      <path d="M15 53.3 64 79.8v20.2M15 66.5 64 93v20.2"/>
+      <path d="M113 53.3 64 79.8v20.2M113 66.5 64 93v20.2"/>
+    </g>
+    <g class="cube-glint">
+      <path d="m54 23 20 10-20 10-20-10 20-10Z"/>
+    </g>
+  </svg>
+  <span class="ext-badge">{{ ext|upper }}</span>
+</div>
+{%- endmacro %}
+
+{% macro folder_art(count=0) -%}
+<div class="file-art folder-art">
+  <svg viewBox="0 0 128 128" aria-hidden="true" focusable="false">
+    <path class="folder-back" d="M20 35h32l9 10h47v53a8 8 0 0 1-8 8H28a8 8 0 0 1-8-8V35Z"/>
+    <path class="folder-front" d="M20 51h88v47a8 8 0 0 1-8 8H28a8 8 0 0 1-8-8V51Z"/>
+    <path class="folder-sheen" d="M20 51h88"/>
+    <g class="folder-pixels">
+      <path d="M33 66h8M33 75h14M33 84h10"/>
+      <path d="M95 66h-8M95 75H81"/>
+    </g>
+  </svg>
+  <span class="folder-count">{{ count }} 项</span>
+</div>
+{%- endmacro %}
+
+{% macro empty_cube() -%}
+<svg class="empty-illustration" viewBox="0 0 200 170" aria-hidden="true" focusable="false">
+  <path d="M100 14 174 54 100 94 26 54 100 14Z" fill="var(--md-primary-container)"/>
+  <path d="M26 54 100 94v62l-74-40V54Z" fill="var(--md-primary-container)" opacity=".72"/>
+  <path d="M174 54 100 94v62l74-40V54Z" fill="var(--md-primary-container)" opacity=".46"/>
+  <path d="M100 14 174 54 100 94 26 54 100 14Z" fill="none" stroke="var(--md-primary)" stroke-width="1.6" opacity=".55"/>
+  <path d="M26 54 100 94v62l-74-40V54ZM174 54 100 94v62l74-40V54Z" fill="none" stroke="var(--md-primary)" stroke-width="1.6" opacity=".55"/>
+  <path d="M100 94v62" stroke="var(--md-primary)" stroke-width="1.6" opacity=".55"/>
+  <g stroke="var(--md-outline-variant)" stroke-width="1.2" stroke-dasharray="3 5" opacity=".7">
+    <path d="M100 118c-20 0-37-8-51-16M100 118c20 0 37-8 51-16"/>
+    <path d="M100 136c-14 0-26-5-35-10M100 136c14 0 26-5 35-10"/>
+  </g>
+</svg>
+{%- endmacro %}
